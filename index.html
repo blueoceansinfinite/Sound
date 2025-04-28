@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Reflection Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            background-color: #1A1A1A;
+            color: #D1D1D1;
+            font-family: 'DM Sans', 'Futura', 'Century Gothic', sans-serif;
+        }
+        .section-header {
+            color: #A0A0A0;
+            border-bottom: 2px solid #4A4A4A;
+            padding-bottom: 0.5rem;
+        }
+        .content-section {
+            background-color: #252525;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .navbar {
+            background-color: #252525;
+        }
+        a {
+            color: #D1D1D1;
+        }
+        a:hover {
+            color: #A0A0A0;
+        }
+        pre {
+            background-color: #2D2D2D;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+        }
+        code {
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        audio {
+            width: 100%;
+            margin-top: 1rem;
+            filter: invert(1) hue-rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <header class="navbar p-4">
+        <nav class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Project Reflection</h1>
+            <ul class="flex space-x-4">
+                <li><a href="#dataset">Dataset</a></li>
+                <li><a href="#design">Design Choices</a></li>
+                <li><a href="#results">Results</a></li>
+                <li><a href="#code">Code & Audio</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto py-8 px-4">
+        <!-- Dataset Section -->
+        <section id="dataset" class="mb-8">
+            <h2 class="text-3xl font-bold section-header mb-4">Dataset Used</h2>
+            <div class="content-section">
+                <p>
+                    The dataset is a CSV file (`Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv`) containing fitness and wellness metrics from wearable devices and user inputs, including workout duration, calories burned, heart rate, steps, sleep hours, stress level, and mood.
+                </p>
+            </div>
+        </section>
+
+        <!-- Design Choices Section -->
+        <section id="design" class="mb-8">
+            <h2 class="text-3xl font-bold section-header mb-4">Design Choices</h2>
+            <div class="content-section">
+                <p>
+                    SuperCollider was used for real-time audio synthesis. Data was mapped to frequency, amplitude, and tempo, with mood influencing scales (e.g., major for "Happy") and workout type determining instruments.
+                </p>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="results" class="mb-8">
+            <h2 class="text-3xl font-bold section-header mb-4">Unexpected Results</h2>
+            <div class="content-section">
+                <p>
+                    Challenges included amplitude clipping (mitigated by normalization), jarring anomaly sounds (adjusted for balance), and unstable tempos (smoothed with averaging).
+                </p>
+            </div>
+        </section>
+
+        <!-- Code and Audio Section -->
+        <section id="code" class="mb-8">
+            <h2 class="text-3xl font-bold section-header mb-4">Code & Audio</h2>
+            <div class="content-section">
+                <!-- Unified_no_variation.scd -->
+                <h3 class="text-2xl font-semibold mt-6 mb-4">Unified_no_variation.scd</h3>
+                <p>Balanced sonification with melodic and percussive layers.</p>
+                <pre><code class="language-supercollider">
+s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output"; // Set correct output device
+
+s.waitForBoot({
+    // Load and Preprocess CSV Data
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers = file[0];
+    var data = file[1..];
+
+    // Filter rows with sufficient columns and valid data
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } } // Validate anomaly flag, stress level, workout intensity
+        }
+    });
+
+    // Extract and normalize numerical data
+    ~workoutDuration = data.collect({ |row| row[2].asFloat }).normalize(0, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat }).normalize(0, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat }).normalize(200, 800);
+    ~steps = data.collect({ |row| row[5].asFloat }).normalize(0, 1);
+    ~distance = data.collect({ |row| row[6].asFloat }).normalize(0, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat }).normalize(0, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat }).normalize(0, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat }).normalize(0, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat }).normalize(0, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat }).normalize(0, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat }).normalize(0, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat }).normalize(0, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat }).normalize(0, 1);
+    ~anomalyFlag = data.collect({ |row| row[37].asInteger ? 0 });
+
+    // Extract and clean categorical data
+    ~workoutType = data.collect({ |row| row[1] });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.notNil.if({
+            rawIntensity.asString.stripWhiteSpace.toLower.replace(" ", "");
+        }, {
+            "medium"
+        });
+        "Raw intensity: %, Processed: %".format(rawIntensity, intensity).postln;
+        if(["low", "medium", "high"].includes(intensity), {
+            intensity[0].toUpper ++ intensity[1..];
+        }, {
+            "Invalid intensity: %".format(intensity).postln;
+            "Medium"
+        })
+    });
+    ~moodBefore = data.collect({ |row| row[14] });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    // Initialize variables
+    ~logisticX = 0.5;
+    ~timeScale = 0.1;
+    ~tempoClock = TempoClock.new(1);
+
+    // Routine for dynamic time-scale manipulation
+    Routine({
+        var accumulatedStress = 0, stressCount = 0;
+        loop {
+            var avgStress = if(stressCount > 0, { accumulatedStress / stressCount }, { 0 });
+            ~timeScale = if(avgStress > 0.5, { 0.05 }, { 0.5 });
+            ~tempoClock.tempo = 1 + (avgStress * 0.5);
+            accumulatedStress = accumulatedStress + (~stressLevel.choose ? 0);
+            stressCount = stressCount + 1;
+            1.wait;
+        }
+    }).play;
+
+    // Define SynthDefs
+    SynthDef(\melodicSynth, { |freq=440, amp=0.3, gate=1, pan=0, vibratoDepth=0|
+        var vib = SinOsc.kr(5).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = Saw.ar(freq * vib * [1, 1.002]) * EnvGen.kr(Env.asr(0.01, 1, 0.5), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 1.0); // Increased amplitude
+        sig = FreeVerb.ar(sig, 0.3, 0.7);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.5, freq=100, dur=0.1|
+        var sig = WhiteNoise.ar * EnvGen.kr(Env.perc(0.01, dur), doneAction: 2);
+        sig = BPF.ar(sig, freq, 0.2) * amp;
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\padSynth, { |freq=220, amp=0.1, gate=1, filterMod=0|
+        var sig = Pulse.ar(freq * [1, 1.002], 0.5);
+        var filterFreq = 500 + (filterMod * 2000);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.1, 1, 1), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.5, 0.8);
+        Out.ar(0, sig * amp);
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=1500, amp=0.1|
+        var sig = Saw.ar(freq) * EnvGen.kr(Env.perc(0.01, 0.3), doneAction: 2);
+        sig = Pan2.ar(sig, LFNoise1.kr(1), amp);
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    1.wait; // Ensure SynthDefs are loaded
+
+    // Define Scales for Moods
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    // Define Instruments for Workout Types
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \padSynth,
+        "HIIT": \melodicSynth,
+        "Running": \percSynth,
+        "Cycling": \padSynth
+    );
+
+    // Define Intensity Map
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    // Precompute instrument choices
+    ~instrumentChoices = ~stressLevel.collect({ |stress, i|
+        if(stress > 0.7 || (~anomalyFlag[i] == 1), \melodicSynth, ~workoutInstruments[~workoutType[i]] ?? \melodicSynth)
+    });
+
+    // Pattern Definition
+    Pdef(\dataMusic,
+        Ppar([
+            // Melody Layer
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \freq, Pfunc({
+                    ~logisticX = (3.5 + ((~heartRate.choose - 60) / 120 * 0.49)) * ~logisticX * (1 - ~logisticX);
+                    ~logisticX = ~logisticX.clip(0, 1); // Clamp to avoid extreme values
+                    if(0.3.coin, { (200 + (800 * ~logisticX)) * [0.5, 1, 1.5].choose }, { 200 + (800 * ~logisticX) })
+                }),
+                \dur, Pfunc({ |ev|
+                    var index = Pkey(\index).asStream.next(ev) ? 0;
+                    var dur = ((~workoutDuration[index] ? 0.1) + 0.1) * exprand(0.5, 2.0) * ~timeScale;
+                    "Melody index: %, dur: %".format(index, dur).postln;
+                    dur
+                }),
+                \amp, Pseq(~caloriesBurned * 0.8, 1), // Increased amplitude
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~anxietyScore * 0.1, 1),
+                \legato, 0.8,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            // Rhythm Layer
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~workoutIntensity.collect({ |intensity|
+                    var val = ~intensityMap[intensity] ? 2;
+                    [60, 120, 200].wchoose([0.4, 0.3, 0.3]) * (val + 1)
+                }), 1),
+                \dur, Pseq(~steps.collect({ |step| 0.25 / (step + 0.1) * Pwhite(0.5, 2.0).asStream.next }), 1) * ~timeScale,
+                \amp, Pseq(~steps * 0.5, 1),
+                \pan, Pwhite(-0.5, 0.5)
+            ),
+            // Texture Layer
+            Pmono(
+                \padSynth,
+                \freq, Pseq(~sleepHours.collect({ |hours| 100 * (2 ** (hours * 2)) }), 1),
+                \amp, Pseq(~sleepQuality * 0.15, 1),
+                \dur, Pwhite(2.0, 5.0) * ~timeScale,
+                \filterMod, Pseq(~depressionScore, 1),
+                \legato, 1.0
+            ),
+            // Anomaly Layer
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(1000, 2000),
+                \amp, 0.1, // Lower amplitude
+                \dur, 0.5 * ~timeScale,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ])
+    );
+
+    // Play with error handling
+    Routine({
+        "Starting playback...".postln;
+        s.makeBundle(nil, {
+            Pdef(\dataMusic).play(~tempoClock);
+        });
+        s.waitForBoot({
+            "Server ready for playback".postln;
+        });
+    }).play;
+});
+
+s.record;
+s.stopRecording;
+
+
+                </code></pre>
+                <audio controls>
+                    <source src="Unified_no_variation.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+
+                <!-- Dymanic_rythm.scd -->
+                <h3 class="text-2xl font-semibold mt-6 mb-4">Dymanic_rythm.scd</h3>
+                <p>Ambient sounds</p>
+                <pre><code class="language-supercollider">
+// Clean environment
+s.freeAll; Pdef.clear; s.reboot;
+
+// Configure audio
+s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output";
+
+s.waitForBoot({
+    // Load CSV
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers, data;
+
+    // Check CSV loading
+    if(file.isNil or: { file.isEmpty }, {
+        "ERROR: Failed to load CSV at %. Check path and file.".format(path).postln;
+        ^nil;
+    });
+
+    headers = file[0];
+    data = file[1..];
+
+    // Filter valid rows
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } }
+        }
+    });
+
+    if(data.isEmpty, {
+        "ERROR: No valid data after filtering. Check CSV columns.".format(path).postln;
+        ^nil;
+    });
+
+    // Extract and normalize data with fallbacks
+    ~workoutDuration = data.collect({ |row| row[2].asFloat ? 0 }).normalize(0.1, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat ? 0 }).normalize(0.1, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat ? 60 }).normalize(300, 1000);
+    ~steps = data.collect({ |row| row[5].asFloat ? 0 }).normalize(0.1, 1);
+    ~distance = data.collect({ |row| row[6].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat ? 0 }).normalize(0.1, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat ? 0 }).normalize(0.1, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat ? 0 }).normalize(0.1, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat ? 0 }).normalize(0.1, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat ? 0 }).normalize(0.1, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat ? 0 }).normalize(0.1, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat ? 0 }).normalize(0.1, 1);
+    ~anomalyFlag = data.collect({ |row|
+        var val = row[37].asInteger ? 0;
+        if(val != 0 and: { val != 1 }, {
+            "Invalid anomaly flag: % at row %".format(val, _).postln;
+            0
+        }, {
+            val
+        })
+    });
+
+    ~workoutType = data.collect({ |row| row[1] ? "Cardio" });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.asString.toLower;
+        intensity = switch(intensity,
+            "low", { "Low" },
+            "medium", { "Medium" },
+            "high", { "High" },
+            {
+                "Invalid intensity: %".format(intensity).postln;
+                "Medium"
+            }
+        );
+        intensity
+    });
+    ~moodBefore = data.collect({ |row| row[14] ? "Neutral" });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    // Debug data ranges
+    "~caloriesBurned range: %".format([~caloriesBurned.minItem, ~caloriesBurned.maxItem]).postln;
+    "~steps range: %".format([~steps.minItem, ~steps.maxItem]).postln;
+    "~anomaly count: %".format(~anomalyFlag.sum).postln;
+
+    // Initialize variables
+    ~logisticX = 0.5;
+    ~timeScale = 0.2;
+    ~tempoClock = TempoClock.new(1);
+
+    // Dynamic tempo based on depression score
+    Routine({
+        var accumulatedDepression = 0, depressionCount = 0;
+        loop {
+            var avgDepression = if(depressionCount > 0, { accumulatedDepression / depressionCount }, { 0 });
+            ~timeScale = 0.2 + (avgDepression * 0.1);
+            ~tempoClock.tempo = 0.5 + (avgDepression * 0.5);
+            accumulatedDepression = accumulatedDepression + (~depressionScore.choose ? 0);
+            depressionCount = depressionCount + 1;
+            1.wait;
+        }
+    }).play;
+
+    // SynthDefs with increased amplitudes
+    SynthDef(\melodicSynth, { |freq=440, amp=0.3, gate=1, pan=0, vibratoDepth=0|
+        var vib = SinOsc.kr(4).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = SinOsc.ar(freq * vib * [1, 1.002]) * EnvGen.kr(Env.asr(0.2, 1, 0.5), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 3.0); // Increased
+        sig = FreeVerb.ar(sig, 0.5, 0.8);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.4, freq=100, dur=0.1|
+        var sig = WhiteNoise.ar * EnvGen.kr(Env.perc(0.01, dur), doneAction: 2);
+        sig = BPF.ar(sig, freq, 0.3) * amp * 2.0; // Increased
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\padSynth, { |freq=220, amp=0.2, gate=1, filterMod=0|
+        var sig = VarSaw.ar(freq * [1, 1.004], 0, 0.3);
+        var filterFreq = 300 + (filterMod * 1200);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.3, 1, 1.0), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.7, 0.9);
+        Out.ar(0, sig * amp * 3.0); // Increased
+    }).add;
+
+    SynthDef(\droneSynth, { |freq=110, amp=0.1, gate=1|
+        var sig = SinOsc.ar(freq * [1, 1.001], mul: 0.5) + LFNoise1.ar(0.1).range(-0.1, 0.1);
+        sig = sig * EnvGen.kr(Env.asr(0.5, 1, 1.5), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.8, 1.0);
+        Out.ar(0, sig * amp * 3.0); // Increased
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=3000, amp=0.15|
+        var sig = SinOsc.ar(freq) * EnvGen.kr(Env.perc(0.01, 0.3), doneAction: 2);
+        sig = Pan2.ar(sig, LFNoise1.kr(1), amp * 2.0); // Increased
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    2.wait;
+
+    // Scales and instruments
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \padSynth,
+        "HIIT": \percSynth,
+        "Running": \percSynth,
+        "Cycling": \melodicSynth
+    );
+
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    ~instrumentChoices = ~moodBefore.collect({ |mood, i|
+        if(~stressLevel[i] > 0.7 || (~anomalyFlag[i] == 1), \percSynth, ~workoutInstruments[~workoutType[i]] ?? \padSynth)
+    });
+
+    // Pattern definition
+    Pdef(\dataMusic,
+        Ppar([
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \degree, Pseq(~moodBefore.collect({ |mood, i|
+                    var scale = ~moodScales[mood] ?? Scale.minor;
+                    (scale.degrees.choose + (12 * ~sleepQuality[i])).round
+                }), 1),
+                \scale, Pfunc({ |ev|
+                    var index = ev[\index] ? 0;
+                    ~moodScales[~moodBefore[index]] ?? Scale.minor
+                }),
+                \root, 60,
+                \dur, Pwhite(0.5, 2.0) * ~timeScale,
+                \amp, Pseq((~sleepQuality * 0.5).max(0.3), 1), // Increased minimum
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~anxietyScore * 0.05, 1),
+                \legato, 0.8,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~steps.collect({ |step|
+                    if(step > 0.5, { [200, 300, 400].choose }, { 0 }) // Rest if step <= 0.5}), 1),
+                \dur, Pwhite(1.0, 3.0) * ~timeScale,
+                \amp, Pseq((~steps * 0.4).max(0.2), 1), // Increased minimum
+                \pan, Pwhite(-0.5, 0.5)
+            ),
+            Pmono(
+                \padSynth,
+                \freq, Pseq(~sleepHours.collect({ |hours| 110 * (2 ** (hours * 1.5)) }), 1),
+                \amp, Pseq((~sleepQuality * 0.5).max(0.3), 1), // Increased minimum
+                \dur, Pwhite(2.0, 5.0) * ~timeScale,
+                \filterMod, Pseq(~depressionScore, 1),
+                \legato, 1.0
+            ),
+            Pmono(
+                \droneSynth,
+                \freq, Pseq(~sleepHours.collect({ |hours| 55 + (hours * 50) }), 1),
+                \amp, Pseq((~sleepQuality * 0.3).max(0.2), 1), // Increased minimum
+                \dur, Pwhite(3.0, 6.0) * ~timeScale,
+                \legato, 1.0
+            ),
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(2000, 4000),
+                \amp, 0.2,
+                \dur, 0.5 * ~timeScale,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ])
+    );
+
+    // Play with debug
+    Routine({
+        "Starting playback...".postln;
+        if(s.serverRunning, {
+            s.makeBundle(nil, {
+                Pdef(\dataMusic).play(~tempoClock);
+                "Pattern started".postln;
+            });
+            s.plotTree;
+        }, {
+            "ERROR: Server not running. Rebooting...".postln;
+            s.reboot;
+            s.waitForBoot({
+                s.makeBundle(nil, {
+                    Pdef(\dataMusic).play(~tempoClock);
+                    "Pattern started after reboot".postln;
+                });
+                s.plotTree;
+            });
+        });
+    }).play;
+});
+
+s.record;
+s.stopRecording;
+                </code></pre>
+                <audio controls>
+                    <source src="Ambient.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+
+                <!-- Mood_driven.scd -->
+                <h3 class="text-2xl font-semibold mt-6 mb-4">Mood_driven.scd</h3>
+                <p>Dynamic Rythm</p>
+                <pre><code class="language-supercollider">
+// Clean environment
+s.freeAll; Pdef.clear; s.reboot;
+
+// Configure audio
+s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output";
+
+s.waitForBoot({
+    // Load CSV
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers, data;
+
+    // Check CSV loading
+    if(file.isNil or: { file.isEmpty }, {
+        "ERROR: Failed to load CSV at %. Check path and file.".format(path).postln;
+        ^nil;
+    });
+
+    headers = file[0];
+    data = file[1..];
+
+    // Filter valid rows
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } }
+        }
+    });
+
+    if(data.isEmpty, {
+        "ERROR: No valid data after filtering. Check CSV columns.".format(path).postln;
+        ^nil;
+    });
+
+    // Extract and normalize data with fallbacks
+    ~workoutDuration = data.collect({ |row| row[2].asFloat ? 0 }).normalize(0.1, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat ? 0 }).normalize(0.1, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat ? 60 }).normalize(300, 1000);
+    ~steps = data.collect({ |row| row[5].asFloat ? 0 }).normalize(0.1, 1);
+    ~distance = data.collect({ |row| row[6].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat ? 0 }).normalize(0.1, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat ? 0 }).normalize(0.1, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat ? 0 }).normalize(0.1, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat ? 0 }).normalize(0.1, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat ? 0 }).normalize(0.1, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat ? 0 }).normalize(0.1, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat ? 0 }).normalize(0.1, 1);
+    ~anomalyFlag = data.collect({ |row| row[37].asInteger ? 0 });
+
+    ~workoutType = data.collect({ |row| row[1] ? "Cardio" });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.notNil.if({
+            rawIntensity.asString.stripWhiteSpace.toLower.replace(" ", "");
+        }, {
+            "medium"
+        });
+        if(["low", "medium", "high"].includes(intensity), {
+            intensity[0].toUpper ++ intensity[1..];
+        }, {
+            "Invalid intensity: %".format(intensity).postln;
+            "Medium"
+        })
+    });
+    ~moodBefore = data.collect({ |row| row[14] ? "Neutral" });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    // Debug data ranges
+    "~caloriesBurned range: %".format([~caloriesBurned.minItem, ~caloriesBurned.maxItem]).postln;
+    "~steps range: %".format([~steps.minItem, ~steps.maxItem]).postln;
+    "~anomaly count: %".format(~anomalyFlag.sum).postln;
+
+    // Initialize variables
+    ~logisticX = 0.5;
+    ~timeScale = 0.1;
+    ~tempoClock = TempoClock.new(2);
+
+    // Dynamic tempo
+    Routine({
+        var accumulatedStress = 0, stressCount = 0;
+        loop {
+            var avgStress = if(stressCount > 0, { accumulatedStress / stressCount }, { 0 });
+            ~timeScale = if(avgStress > 0.5, { 0.05 }, { 0.2 });
+            ~tempoClock.tempo = 2 + (avgStress * 1.0);
+            accumulatedStress = accumulatedStress + (~stressLevel.choose ? 0);
+            stressCount = stressCount + 1;
+            0.5.wait;
+        }
+    }).play;
+
+    // SynthDefs with increased amplitudes
+    SynthDef(\melodicSynth, { |freq=440, amp=0.4, gate=1, pan=0, vibratoDepth=0|
+        var vib = SinOsc.kr(6).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = Pulse.ar(freq * vib * [1, 1.003], 0.4) * EnvGen.kr(Env.asr(0.01, 1, 0.3), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 2.0); // Increased for audibility
+        sig = FreeVerb.ar(sig, 0.2, 0.6);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.6, freq=100, dur=0.05|
+        var kick = SinOsc.ar(60) * EnvGen.kr(Env.perc(0.01, 0.1));
+        var snare = WhiteNoise.ar * EnvGen.kr(Env.perc(0.01, dur), doneAction: 2);
+        var sig = (kick * 0.7) + (snare * 0.3);
+        sig = BPF.ar(sig, freq, 0.4) * amp * 2.0; // Increased
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\padSynth, { |freq=220, amp=0.1, gate=1, filterMod=0|
+        var sig = Saw.ar(freq * [1, 1.002]);
+        var filterFreq = 400 + (filterMod * 1000);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.1, 1, 0.5), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.3, 0.7);
+        Out.ar(0, sig * amp * 2.0); // Increased
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=2000, amp=0.2|
+        var sig = Pulse.ar(freq) * EnvGen.kr(Env.perc(0.01, 0.2), doneAction: 2);
+        sig = Pan2.ar(sig, LFNoise1.kr(2), amp * 1.0);
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    2.wait;
+
+    // Scales and instruments
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \padSynth,
+        "HIIT": \percSynth,
+        "Running": \percSynth,
+        "Cycling": \melodicSynth
+    );
+
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    ~instrumentChoices = ~stressLevel.collect({ |stress, i|
+        if(stress > 0.7 || (~anomalyFlag[i] == 1), \percSynth, ~workoutInstruments[~workoutType[i]] ?? \percSynth)
+    });
+
+    // Pattern definition
+    Pdef(\dataMusic,
+        Ppar([
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \freq, Pfunc({
+                    ~logisticX = (3.6 + ((~heartRate.choose - 60) / 120 * 0.5)) * ~logisticX * (1 - ~logisticX);
+                    ~logisticX = ~logisticX.clip(0, 1);
+                    "Freq: %".format(300 + (700 * ~logisticX)).postln; // Debug
+                    300 + (700 * ~logisticX)
+                }),
+                \dur, Pfunc({ |ev|
+                    var index = Pkey(\index).asStream.next(ev) ? 0;
+                    var dur = ((~steps[index] ? 0.1) + 0.05) * exprand(0.1, 0.5) * ~timeScale;
+                    "Melody index: %, dur: %".format(index, dur).postln;
+                    dur
+                }),
+                \amp, Pseq((~caloriesBurned * 0.7).max(0.3), 1), // Minimum amplitude
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~anxietyScore * 0.1, 1),
+                \legato, 0.6,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~workoutIntensity.collect({ |intensity|
+                    var val = ~intensityMap[intensity] ? 2;
+                    [100, 150, 200].wchoose([0.3, 0.4, 0.3]) * (val + 0.5)
+                }), 1),
+                \dur, Pseq(~steps.collect({ |step| 0.1 / (step + 0.1) * Pwhite(0.2, 0.8).asStream.next }), 1) * ~timeScale,
+                \amp, Pseq((~steps * 0.8).max(0.3), 1), // Minimum amplitude
+                \pan, Pwhite(-0.5, 0.5)
+            ),
+            Pmono(
+                \padSynth,
+                \freq, Pseq(~sleepHours.collect({ |hours| 150 * (2 ** (hours * 1)) }), 1),
+                \amp, Pseq((~sleepQuality * 0.1).max(0.2), 1), // Minimum amplitude
+                \dur, Pwhite(1.0, 3.0) * ~timeScale,
+                \filterMod, Pseq(~depressionScore, 1),
+                \legato, 1.0
+            ),
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(1500, 2500),
+                \amp, 0.2,
+                \dur, 0.2 * ~timeScale,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ])
+    );
+
+    // Play with debug
+    Routine({
+        "Starting playback...".postln;
+        s.makeBundle(nil, {
+            Pdef(\dataMusic).play(~tempoClock);
+            "Pattern started".postln;
+        });
+        s.waitForBoot({
+            "Server ready for playback".postln;
+            s.plotTree; // Visualize active nodes
+        });
+    }).play;
+});
+
+s.record;
+s.stopRecording;
+                </code></pre>
+                <audio controls>
+                    <source src="Dynamic_rythm.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+
+                
+                <h3 class="text-2xl font-semibold mt-6 mb-4">Harmonic_pulse.scd</h3>
+                <p>Harmonic sonification with heart rate-driven tempo.</p>
+                <pre><code class="language-supercollider">
+                // Clean environment
+s.freeAll; Pdef.clear; s.reboot;
+
+// Configure audio
+s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output";
+
+s.waitForBoot({
+    // Load CSV
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers, data;
+
+    // Check CSV loading
+    if(file.isNil or: { file.isEmpty }, {
+        "ERROR: Failed to load CSV at %. Check path and file.".format(path).postln;
+        ^nil;
+    });
+
+    headers = file[0];
+    data = file[1..];
+
+    // Filter valid rows
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } }
+        }
+    });
+
+    if(data.isEmpty, {
+        "ERROR: No valid data after filtering. Check CSV columns.".format(path).postln;
+        ^nil;
+    });
+
+    // Extract and normalize data with fallbacks
+    ~workoutDuration = data.collect({ |row| row[2].asFloat ? 0 }).normalize(0.1, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat ? 0 }).normalize(0.1, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat ? 60 }).normalize(300, 1000);
+    ~steps = data.collect({ |row| row[5].asFloat ? 0 }).normalize(0.1, 1);
+    ~distance = data.collect({ |row| row[6].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat ? 0 }).normalize(0.1, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat ? 0 }).normalize(0.1, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat ? 0 }).normalize(0.1, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat ? 0 }).normalize(0.1, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat ? 0 }).normalize(0.1, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat ? 0 }).normalize(0.1, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat ? 0 }).normalize(0.1, 1);
+    ~anomalyFlag = data.collect({ |row| row[37].asInteger ? 0 });
+
+    ~workoutType = data.collect({ |row| row[1] ? "Cardio" });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.notNil.if({
+            rawIntensity.asString.stripWhiteSpace.toLower.replace(" ", "");
+        }, {
+            "medium"
+        });
+        if(["low", "medium", "high"].includes(intensity), {
+            intensity[0].toUpper ++ intensity[1..];
+        }, {
+            "Invalid intensity: %".format(intensity).postln;
+            "Medium"
+        })
+    });
+    ~moodBefore = data.collect({ |row| row[14] ? "Neutral" });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    // Debug data ranges
+    "~caloriesBurned range: %".format([~caloriesBurned.minItem, ~caloriesBurned.maxItem]).postln;
+    "~steps range: %".format([~steps.minItem, ~steps.maxItem]).postln;
+    "~anomaly count: %".format(~anomalyFlag.sum).postln;
+
+    // Initialize variables
+    ~logisticX = 0.5;
+    ~timeScale = 0.1;
+    ~tempoClock = TempoClock.new(2);
+
+    // Dynamic tempo based on heart rate
+    Routine({
+        var accumulatedHeartRate = 0, heartRateCount = 0;
+        loop {
+            var avgHeartRate = if(heartRateCount > 0, { accumulatedHeartRate / heartRateCount }, { 0 });
+            ~timeScale = 0.1 + (avgHeartRate * 0.1);
+            ~tempoClock.tempo = 1.5 + (avgHeartRate * 1.5);
+            accumulatedHeartRate = accumulatedHeartRate + (~heartRate.choose ? 0);
+            heartRateCount = heartRateCount + 1;
+            0.5.wait;
+        }
+    }).play;
+
+    // SynthDefs for harmonic textures
+    SynthDef(\melodicSynth, { |freq=440, amp=0.4, gate=1, pan=0, vibratoDepth=0|
+        var vib = SinOsc.kr(5).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = SinOsc.ar(freq * vib * [1, 1.003]) * EnvGen.kr(Env.asr(0.05, 1, 0.4), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 2.0);
+        sig = FreeVerb.ar(sig, 0.3, 0.7);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.5, freq=100, dur=0.05|
+        var kick = SinOsc.ar(80) * EnvGen.kr(Env.perc(0.01, 0.1));
+        var sig = kick * EnvGen.kr(Env.perc(0.01, dur), doneAction: 2);
+        sig = BPF.ar(sig, freq, 0.5) * amp * 2.0;
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\padSynth, { |freq=220, amp=0.1, gate=1, filterMod=0|
+        var sig = SinOsc.ar(freq * [1, 1.002]);
+        var filterFreq = 400 + (filterMod * 1000);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.2, 1, 0.5), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.4, 0.8);
+        Out.ar(0, sig * amp * 2.0);
+    }).add;
+
+    SynthDef(\chordSynth, { |freq=440, amp=0.3, gate=1, pan=0|
+        var sig = SinOsc.ar(freq * [1, 1.2, 1.5, 2.0]) * 0.25;
+        sig = sig * EnvGen.kr(Env.asr(0.1, 1, 0.5), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 2.0);
+        sig = FreeVerb.ar(sig, 0.5, 0.7);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=1500, amp=0.2|
+        var sig = SinOsc.ar(freq * LFNoise1.kr(2).range(0.95, 1.05)) * EnvGen.kr(Env.perc(0.01, 0.2), doneAction: 2);
+        sig = Pan2.ar(sig, LFNoise1.kr(1), amp * 1.0);
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    2.wait;
+
+    // Scales and instruments
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \padSynth,
+        "HIIT": \percSynth,
+        "Running": \chordSynth,
+        "Cycling": \chordSynth
+    );
+
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    ~instrumentChoices = ~heartRate.collect({ |hr, i|
+        if(~anomalyFlag[i] == 1, \percSynth, ~workoutInstruments[~workoutType[i]] ?? \chordSynth)
+    });
+
+    // Pattern definition
+    Pdef(\dataMusic,
+        Ppar([
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \degree, Pseq(~heartRate.collect({ |hr, i|
+                    var scale = ~moodScales[~moodBefore[i]] ?? Scale.minor;
+                    scale.degrees.choose
+                }), 1),
+                \scale, Pfunc({ |ev|
+                    var index = ev[\index] ? 0;
+                    ~moodScales[~moodBefore[index]] ?? Scale.minor
+                }),
+                \root, 60,
+                \dur, Pseq(~steps.collect({ |step| 0.25 / (step + 0.1) }), 1) * ~timeScale,
+                \amp, Pseq((~caloriesBurned * 0.6).max(0.3), 1),
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~stressLevel * 0.1, 1),
+                \legato, 0.7,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~workoutIntensity.collect({ |intensity|
+                    var val = ~intensityMap[intensity] ? 2;
+                    [100, 150, 200].wchoose([0.3, 0.4, 0.3]) * val
+                }), 1),
+                \dur, Pseq(~steps.collect({ |step| 0.1 / (step + 0.1) }), 1) * ~timeScale,
+                \amp, Pseq((~steps * 0.7).max(0.3), 1),
+                \pan, Pwhite(-0.5, 0.5)
+            ),
+            Pmono(
+                \padSynth,
+                \freq, Pseq(~vo2Max.collect({ |vo2| 120 + (vo2 * 100) }), 1),
+                \amp, Pseq((~vo2Max * 0.3).max(0.2), 1),
+                \dur, Pwhite(1.0, 3.0) * ~timeScale,
+                \filterMod, Pseq(~depressionScore, 1),
+                \legato, 1.0
+            ),
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(1000, 2000),
+                \amp, 0.2,
+                \dur, 0.3 * ~timeScale,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ])
+    );
+
+    // Play with debug
+    Routine({
+        "Starting playback...".postln;
+        s.makeBundle(nil, {
+            Pdef(\dataMusic).play(~tempoClock);
+            "Pattern started".postln;
+        });
+        s.waitForBoot({
+            "Server ready for playback".postln;
+            s.plotTree; // Visualize active nodes
+        });
+    }).play;
+});
+s.record;
+s.stopRecording;
+                </code></pre>
+                <audio controls>
+                    <source src="Harmonic_pulse.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </section>
+    </main>
+		
+	</code></pre>
+                <audio controls>
+                    <source src="Dynamic_rythm.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+
+                
+                <h3 class="text-2xl font-semibold mt-6 mb-4">Harmonic_pulse.scd</h3>
+                <p>Mood driven</p>
+                <pre><code class="language-supercollider">
+				
+				s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output";
+
+s.waitForBoot({
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers = file[0];
+    var data = file[1..];
+
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } }
+        }
+    });
+
+    ~workoutDuration = data.collect({ |row| row[2].asFloat }).normalize(0, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat }).normalize(0, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat }).normalize(200, 600);
+    ~steps = data.collect({ |row| row[5].asFloat }).normalize(0, 1);
+    ~distance = data.collect({ |row| row[6].asFloat }).normalize(0, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat }).normalize(0, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat }).normalize(0, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat }).normalize(0, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat }).normalize(0, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat }).normalize(0, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat }).normalize(0, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat }).normalize(0, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat }).normalize(0, 1);
+    ~anomalyFlag = data.collect({ |row| row[37].asInteger ? 0 });
+
+    ~workoutType = data.collect({ |row| row[1] });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.notNil.if({
+            rawIntensity.asString.stripWhiteSpace.toLower.replace(" ", "");
+        }, {
+            "medium"
+        });
+        if(["low", "medium", "high"].includes(intensity), {
+            intensity[0].toUpper ++ intensity[1..];
+        }, {
+            "Invalid intensity: %".format(intensity).postln;
+            "Medium"
+        })
+    });
+    ~moodBefore = data.collect({ |row| row[14] });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    ~logisticX = 0.5;
+    ~timeScale = 0.2;
+    ~tempoClock = TempoClock.new(1);
+
+    Routine({
+        var accumulatedStress = 0, stressCount = 0;
+        loop {
+            var avgStress = if(stressCount > 0, { accumulatedStress / stressCount }, { 0 });
+            ~timeScale = if(avgStress > 0.5, { 0.1 }, { 0.3 });
+            ~tempoClock.tempo = 1 + (avgStress * 0.5);
+            accumulatedStress = accumulatedStress + (~stressLevel.choose ? 0);
+            stressCount = stressCount + 1;
+            1.wait;
+        }
+    }).play;
+
+    SynthDef(\melodicSynth, { |freq=440, amp=0.3, gate=1, pan=0, vibratoDepth=0|
+        var vib = SinOsc.kr(4).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = LFTri.ar(freq * vib * [1, 1.002]) * EnvGen.kr(Env.asr(0.05, 1, 0.7), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 1.0);
+        sig = FreeVerb.ar(sig, 0.4, 0.8);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.4, freq=150, dur=0.1|
+        var sig = WhiteNoise.ar * EnvGen.kr(Env.perc(0.01, dur), doneAction: 2);
+        sig = HPF.ar(sig, freq) * amp;
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\chordSynth, { |freq=220, amp=0.2, gate=1, filterMod=0|
+        var sig = Mix(SinOsc.ar(freq * [1, 1.26, 1.5, 2])) * 0.25; // Major/minor chord
+        var filterFreq = 600 + (filterMod * 2000);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.2, 1, 1), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.6, 0.9);
+        Out.ar(0, sig * amp);
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=1200, amp=0.2|
+        var sig = Saw.ar(freq * [1, 1.1]) * EnvGen.kr(Env.perc(0.02, 0.4), doneAction: 2); // Dissonant
+        sig = Pan2.ar(sig, LFNoise1.kr(1), amp);
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    1.wait;
+
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \chordSynth,
+        "HIIT": \melodicSynth,
+        "Running": \percSynth,
+        "Cycling": \chordSynth
+    );
+
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    ~instrumentChoices = ~stressLevel.collect({ |stress, i|
+        if(stress > 0.7 || (~anomalyFlag[i] == 1), \melodicSynth, ~workoutInstruments[~workoutType[i]] ?? \melodicSynth)
+    });
+
+    Pdef(\dataMusic,
+        Ppar([
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \degree, Pseq(~moodBefore.collect({ |mood, i|
+                    var scale = ~moodScales[mood] ?? Scale.major;
+                    scale.degrees.choose
+                }), 1),
+                \scale, Pseq(~moodBefore.collect({ |mood| ~moodScales[mood] ?? Scale.major }), 1),
+                \root, 60, // C4
+                \dur, Pfunc({ |ev|
+                    var index = Pkey(\index).asStream.next(ev) ? 0;
+                    var dur = ((~workoutDuration[index] ? 0.1) + 0.2) * exprand(0.3, 1.5) * ~timeScale;
+                    "Melody index: %, dur: %".format(index, dur).postln;
+                    dur
+                }),
+                \amp, Pseq(~caloriesBurned * 0.6, 1),
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~anxietyScore * 0.08, 1),
+                \legato, 0.9,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~workoutIntensity.collect({ |intensity|
+                    var val = ~intensityMap[intensity] ? 2;
+                    [120, 180, 240].wchoose([0.4, 0.4, 0.2])
+                }), 1),
+                \dur, Pseq(~steps.collect({ |step| 0.3 / (step + 0.1) * Pwhite(0.5, 1.5).asStream.next }), 1) * ~timeScale,
+                \amp, Pseq(~steps * 0.3, 1),
+                \pan, Pwhite(-0.6, 0.6)
+            ),
+            Pmono(
+                \chordSynth,
+                \freq, Pseq(~moodBefore.collect({ |mood|
+                    var scale = ~moodScales[mood] ?? Scale.major;
+                    (scale.degrees + 60).midicps.choose // Root note of chord
+                }), 1),
+                \amp, Pseq(~stressLevel * 0.25, 1),
+                \dur, Pwhite(2.0, 4.0) * ~timeScale,
+                \filterMod, Pseq(~depressionScore, 1),
+                \legato, 1.2
+            ),
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(1000, 1500),
+                \amp, 0.2,
+                \dur, 0.5 * ~timeScale,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ])
+    );
+
+    Routine({
+        "Starting playback...".postln;
+        s.makeBundle(nil, {
+            Pdef(\dataMusic).play(~tempoClock);
+        });
+        s.waitForBoot({
+            "Server ready for playback".postln;
+        });
+    }).play;
+});
+
+s.record;
+s.stopRecording;
+
+				 </code></pre>
+                <audio controls>
+                    <source src="Mood_driven.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </section>
+    </main>
+
+
+h3 class="text-2xl font-semibold mt-6 mb-4">Harmonic_pulse.scd</h3>
+                <p>Varied textures of data</p>
+                <pre><code class="language-supercollider">
+				
+				s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output";
+
+s.waitForBoot({
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers = file[0];
+    var data = file[1..];
+
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } }
+        }
+    });
+
+    ~workoutDuration = data.collect({ |row| row[2].asFloat }).normalize(0, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat }).normalize(0, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat }).normalize(100, 400); // Lower range
+    ~steps = data.collect({ |row| row[5].asFloat }).normalize(0, 1);
+    ~distance = data.collect({ |row| row[6].asFloat }).normalize(0, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat }).normalize(0, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat }).normalize(0, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat }).normalize(0, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat }).normalize(0, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat }).normalize(0, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat }).normalize(0, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat }).normalize(0, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat }).normalize(0, 1);
+    ~anomalyFlag = data.collect({ |row| row[37].asInteger ? 0 });
+
+    ~workoutType = data.collect({ |row| row[1] });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.notNil.if({
+            rawIntensity.asString.stripWhiteSpace.toLower.replace(" ", "");
+        }, {
+            "medium"
+        });
+        if(["low", "medium", "high"].includes(intensity), {
+            intensity[0].toUpper ++ intensity[1..];
+        }, {
+            "Invalid intensity: %".format(intensity).postln;
+            "Medium"
+        })
+    });
+    ~moodBefore = data.collect({ |row| row[14] });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    ~logisticX = 0.5;
+    ~timeScale = 0.5; // Slower base tempo
+    ~tempoClock = TempoClock.new(0.5);
+
+    Routine({
+        var accumulatedStress = 0, stressCount = 0;
+        loop {
+            var avgStress = if(stressCount > 0, { accumulatedStress / stressCount }, { 0 });
+            ~timeScale = if(avgStress > 0.5, { 0.3 }, { 0.7 });
+            ~tempoClock.tempo = 0.5 + (avgStress * 0.3);
+            accumulatedStress = accumulatedStress + (~stressLevel.choose ? 0);
+            stressCount = stressCount + 1;
+            2.wait;
+        }
+    }).play;
+
+    SynthDef(\melodicSynth, { |freq=220, amp=0.3, gate=1, pan=0, vibratoDepth=0|
+        var vib = SinOsc.kr(3).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = SinOsc.ar(freq * vib * [1, 1.005]) * EnvGen.kr(Env.asr(0.1, 1, 1), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 1.2);
+        sig = FreeVerb.ar(sig, 0.7, 0.9); // More reverb
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.3, freq=80, dur=0.2|
+        var sig = PinkNoise.ar * EnvGen.kr(Env.perc(0.02, dur), doneAction: 2);
+        sig = BPF.ar(sig, freq, 0.3) * amp;
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\padSynth, { |freq=110, amp=0.15, gate=1, filterMod=0|
+        var sig = VarSaw.ar(freq * [0.99, 1, 1.01], 0, 0.3); // Detuned oscillators
+        var filterFreq = 300 + (filterMod * 1500) * LFNoise1.kr(0.1).range(0.8, 1.2);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.2, 1, 2), gate, doneAction: 2);
+        sig = FreeVerb.ar(sig, 0.8, 1.0);
+        Out.ar(0, sig * amp);
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=800, amp=0.05|
+        var sig = SinOsc.ar(freq) * EnvGen.kr(Env.perc(0.05, 0.5), doneAction: 2);
+        sig = Pan2.ar(sig, LFNoise1.kr(0.5), amp);
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    1.wait;
+
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \padSynth,
+        "HIIT": \melodicSynth,
+        "Running": \percSynth,
+        "Cycling": \padSynth
+    );
+
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    ~instrumentChoices = ~stressLevel.collect({ |stress, i|
+        if(stress > 0.7 || (~anomalyFlag[i] == 1), \padSynth, ~workoutInstruments[~workoutType[i]] ?? \padSynth)
+    });
+
+    Pdef(\dataMusic,
+        Ppar([
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \freq, Pfunc({
+                    ~logisticX = (3.4 + ((~heartRate.choose - 60) / 120 * 0.3)) * ~logisticX * (1 - ~logisticX);
+                    ~logisticX = ~logisticX.clip(0, 1);
+                    100 + (300 * ~logisticX)
+                }),
+                \dur, Pfunc({ |ev|
+                    var index = Pkey(\index).asStream.next(ev) ? 0;
+                    var dur = ((~sleepHours[index] ? 0.1) + 0.5) * exprand(1.0, 4.0) * ~timeScale;
+                    "Melody index: %, dur: %".format(index, dur).postln;
+                    dur
+                }),
+                \amp, Pseq(~sleepQuality * 0.6, 1),
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~anxietyScore * 0.05, 1),
+                \legato, 1.2,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~workoutIntensity.collect({ |intensity|
+                    var val = ~intensityMap[intensity] ? 2;
+                    [50, 80, 120].wchoose([0.5, 0.3, 0.2]) * val
+                }), 1),
+                \dur, Pseq(~steps.collect({ |step| 0.5 / (step + 0.1) * Pwhite(1.0, 3.0).asStream.next }), 1) * ~timeScale,
+                \amp, Pseq(~steps * 0.2, 1),
+                \pan, Pwhite(-0.7, 0.7)
+            ),
+            Pmono(
+                \padSynth,
+                \freq, Pseq(~sleepHours.collect({ |hours| 80 * (2 ** (hours * 1.5)) }), 1),
+                \amp, Pseq(~sleepQuality * 0.25, 1),
+                \dur, Pwhite(4.0, 8.0) * ~timeScale,
+                \filterMod, Pseq(~depressionScore, 1),
+                \legato, 1.5
+            ),
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(500, 1000),
+                \amp, 0.05,
+                \dur, 1.0 * ~timeScale,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ])
+    );
+
+    Routine({
+        "Starting playback...".postln;
+        s.makeBundle(nil, {
+            Pdef(\dataMusic).play(~tempoClock);
+        });
+        s.waitForBoot({
+            "Server ready for playback".postln;
+        });
+    }).play;
+});
+
+s.record;
+s.stopRecording;
+
+				 </code></pre>
+                <audio controls>
+                    <source src="Varied_textures.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </section>
+    </main>
+
+
+
+h3 class="text-2xl font-semibold mt-6 mb-4">Harmonic_pulse.scd</h3>
+                <p>Glitch</p>
+                <pre><code class="language-supercollider">
+				
+				// Clean environment
+s.freeAll; Pdef.clear; s.reboot;
+
+// Configure audio
+s.options.numInputBusChannels = 0;
+s.options.outDevice = "Built-in Output";
+
+s.waitForBoot({
+    // Load CSV
+    var path = "/Users/aanyapandith/Desktop/Machina/Task 4/Aanya_Pandith_CAC_Sem4_Task3_unifiied.csv";
+    var file = CSVFileReader.read(path, true, true);
+    var headers, data;
+
+    // Check CSV loading
+    if(file.isNil or: { file.isEmpty }, {
+        "ERROR: Failed to load CSV at %. Check path and file.".format(path).postln;
+        ^nil;
+    });
+
+    headers = file[0];
+    data = file[1..];
+
+    // Filter valid rows
+    data = data.select({ |row|
+        row.size >= 54 and: {
+            row[37].notNil and: { row[31].notNil and: { row[7].notNil } }
+        }
+    });
+
+    if(data.isEmpty, {
+        "ERROR: No valid data after filtering. Check CSV columns.".format(path).postln;
+        ^nil;
+    });
+
+    // Extract and normalize data with fallbacks
+    ~workoutDuration = data.collect({ |row| row[2].asFloat ? 0 }).normalize(0.1, 1);
+    ~caloriesBurned = data.collect({ |row| row[3].asFloat ? 0 }).normalize(0.1, 1);
+    ~heartRate = data.collect({ |row| row[4].asFloat ? 60 }).normalize(300, 1000);
+    ~steps = data.collect({ |row| row[5].asFloat ? 0 }).normalize(0.1, 1);
+    ~distance = data.collect({ |row| row[6].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepHours = data.collect({ |row| row[8].asFloat ? 0 }).normalize(0.1, 1);
+    ~waterIntake = data.collect({ |row| row[9].asFloat ? 0 }).normalize(0.1, 1);
+    ~stressLevel = data.collect({ |row| row[31].asFloat ? 0 }).normalize(0.1, 1);
+    ~sleepQuality = data.collect({ |row| row[50].asFloat ? 0 }).normalize(0.1, 1);
+    ~anxietyScore = data.collect({ |row| row[46].asFloat ? 0 }).normalize(0.1, 1);
+    ~depressionScore = data.collect({ |row| row[47].asFloat ? 0 }).normalize(0.1, 1);
+    ~vo2Max = data.collect({ |row| row[12].asFloat ? 0 }).normalize(0.1, 1);
+    ~exerciseHours = data.collect({ |row| row[43].asFloat ? 0 }).normalize(0.1, 1);
+    ~anomalyFlag = data.collect({ |row|
+        var val = row[37].asInteger ? 0;
+        if(val != 0 and: { val != 1 }, {
+            "Invalid anomaly flag: % at row %".format(val, _).postln;
+            0
+        }, {
+            val
+        })
+    });
+
+    ~workoutType = data.collect({ |row| row[1] ? "Cardio" });
+    ~workoutIntensity = data.collect({ |row|
+        var rawIntensity = row[7];
+        var intensity = rawIntensity.asString.toLower;
+        intensity = switch(intensity,
+            "low", { "Low" },
+            "medium", { "Medium" },
+            "high", { "High" },
+            {
+                "Invalid intensity: %".format(intensity).postln;
+                "Medium"
+            }
+        );
+        intensity
+    });
+    ~moodBefore = data.collect({ |row| row[14] ? "Neutral" });
+
+    ~dataSize = ~caloriesBurned.size;
+    "Data loaded: % rows".format(~dataSize).postln;
+
+    // Debug data ranges
+    "~caloriesBurned range: %".format([~caloriesBurned.minItem, ~caloriesBurned.maxItem]).postln;
+    "~steps range: %".format([~steps.minItem, ~steps.maxItem]).postln;
+    "~anomaly count: %".format(~anomalyFlag.sum).postln;
+
+    // Initialize variables
+    ~logisticX = 0.5;
+    ~timeScale = 0.1;
+    ~tempoClock = TempoClock.new(1);
+
+    // Dynamic tempo based on heart rate
+    Routine({
+        var accumulatedHeartRate = 0, heartRateCount = 0;
+        loop {
+            var avgHeartRate = if(heartRateCount > 0, { accumulatedHeartRate / heartRateCount }, { 0 });
+            ~timeScale = 0.1 + (avgHeartRate * 0.1);
+            ~tempoClock.tempo = 1 + (avgHeartRate * 1.0);
+            accumulatedHeartRate = accumulatedHeartRate + (~heartRate.choose ? 0);
+            heartRateCount = heartRateCount + 1;
+            0.5.wait;
+        }
+    }).play;
+
+    // SynthDefs with increased amplitudes
+    SynthDef(\melodicSynth, { |freq=440, amp=0.3, gate=1, pan=0, vibratoDepth=0|
+        var vib = LFNoise1.kr(10).range(1 - vibratoDepth, 1 + vibratoDepth);
+        var sig = Pulse.ar(freq * vib * [1, 1.005], 0.3) * EnvGen.kr(Env.asr(0.01, 1, 0.1), gate, doneAction: 2);
+        sig = Pan2.ar(sig, pan, amp * 3.0);
+        sig = (sig * 0.7) + (sig.distort * 0.3);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\percSynth, { |amp=0.5, freq=100, dur=0.02|
+        var sig = WhiteNoise.ar * EnvGen.kr(Env.perc(0.005, dur), doneAction: 2);
+        sig = HPF.ar(sig, freq) * amp * 3.0;
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\padSynth, { |freq=220, amp=0.1, gate=1, filterMod=0|
+        var sig = Saw.ar(freq * [1, 1.01] * LFNoise1.kr(0.5).range(0.99, 1.01));
+        var filterFreq = 500 + (filterMod * 1500);
+        sig = LPF.ar(sig, filterFreq);
+        sig = sig * EnvGen.kr(Env.asr(0.1, 1, 0.2), gate, doneAction: 2);
+        sig = (sig * 0.6) + (sig.distort * 0.4);
+        Out.ar(0, sig * amp * 3.0);
+    }).add;
+
+    SynthDef(\glitchSynth, { |freq=440, amp=0.2, gate=1|
+        var sig = LFPulse.ar(freq * [1, 1.007], 0, 0.2);
+        sig = sig * LFNoise0.kr(20).range(0, 1);
+        sig = sig * EnvGen.kr(Env.asr(0.01, 1, 0.1), gate, doneAction: 2);
+        sig = Pan2.ar(sig, LFNoise1.kr(5), amp * 3.0);
+        Out.ar(0, sig);
+    }).add;
+
+    SynthDef(\anomalySound, { |freq=2000, amp=0.3|
+        var sig = Pulse.ar(freq) * EnvGen.kr(Env.perc(0.01, 0.1), doneAction: 2);
+        sig = (sig * 0.5) + (sig.distort * 0.5);
+        sig = Pan2.ar(sig, LFNoise1.kr(3), amp * 2.0);
+        Out.ar(0, sig);
+    }).add;
+
+    s.sync;
+    2.wait;
+
+    // Scales and instruments
+    ~moodScales = (
+        "Happy": Scale.major,
+        "Neutral": Scale.minor,
+        "Tired": Scale.phrygian,
+        "Stressed": Scale.locrian,
+        "Sad": Scale.dorian
+    );
+
+    ~workoutInstruments = (
+        "Cardio": \melodicSynth,
+        "Strength": \percSynth,
+        "Yoga": \padSynth,
+        "HIIT": \glitchSynth,
+        "Running": \percSynth,
+        "Cycling": \glitchSynth
+    );
+
+    ~intensityMap = ("Low": 1, "Medium": 2, "High": 3);
+
+    ~instrumentChoices = ~stressLevel.collect({ |stress, i|
+        if(stress > 0.8 || (~anomalyFlag[i] == 1), \glitchSynth, ~workoutInstruments[~workoutType[i]] ?? \glitchSynth)
+    });
+
+    // Pattern definition
+    Pdef(\dataMusic,
+        Ppar([
+            Pbind(
+                \instrument, Pseq(~instrumentChoices, 1),
+                \freq, Pfunc({
+                    ~logisticX = (3.8 + (~stressLevel.choose * 0.2)) * ~logisticX * (1 - ~logisticX);
+                    ~logisticX = ~logisticX.clip(0, 1);
+                    "Freq: %".format(200 + (800 * ~logisticX)).postln;
+                    200 + (800 * ~logisticX)
+                }),
+                \dur, Pwhite(0.15, 0.6) * ~timeScale * 2,
+                \amp, Pseq((~caloriesBurned * 0.5).max(0.3), 1),
+                \pan, Pseq(~distance * 2 - 1, 1),
+                \vibratoDepth, Pseq(~stressLevel * 0.2, 1),
+                \legato, 0.4,
+                \index, Pseries(0, 1, ~dataSize)
+            ),
+            Pbind(
+                \instrument, \percSynth,
+                \freq, Pseq(~anomalyFlag.collect({ |flag|
+                    if(flag == 1, { [500, 1000, 1500].choose }, { 0 })
+                }), 1),
+                \dur, Pwhite(0.06, 0.3) * ~timeScale * 2,
+                \amp, Pseq((~stressLevel * 0.6).max(0.3), 1),
+                \pan, Pwhite(-0.7, 0.7)
+            ),
+            Pmono(
+                \padSynth,
+                \freq, Pseq(~anxietyScore.collect({ |score| 150 + (score * 100) }), 1),
+                \amp, Pseq((~anxietyScore * 0.3).max(0.2), 1),
+                \dur, Pwhite(1.0, 3.0) * ~timeScale * 2,
+                \filterMod, Pseq(~stressLevel, 1),
+                \legato, 0.7
+            ),
+            Pbind(
+                \instrument, \anomalySound,
+                \freq, Pexprand(1000, 3000),
+                \amp, 0.3,
+                \dur, 0.3 * ~timeScale * 2,
+                \play, Pseq(~anomalyFlag.collect({ |flag| if(flag == 1, 1, 0) }), 1)
+            )
+        ]).repeat(2) // Repeat pattern twice
+    );
+
+    // Play with debug and recording
+    Routine({
+        "Starting playback...".postln;
+        if(s.serverRunning, {
+            s.record; // Start recording
+            s.makeBundle(nil, {
+                Pdef(\dataMusic).play(~tempoClock);
+                "Pattern started".postln;
+            });
+            s.plotTree;
+            // Estimate duration: ~362 rows * avg 0.3s/event * 2 repeats * ~0.15 timeScale / ~1.5 tempo
+            300.wait; // Wait ~5 minutes
+            s.stopRecording;
+            "Recording stopped".postln;
+        }, {
+            "ERROR: Server not running. Rebooting...".postln;
+            s.reboot;
+            s.waitForBoot({
+                s.record;
+                s.makeBundle(nil, {
+                    Pdef(\dataMusic).play(~tempoClock);
+                    "Pattern started after reboot".postln;
+                });
+                s.plotTree;
+                300.wait;
+                s.stopRecording;
+                "Recording stopped".postln;
+            });
+        });
+    }).play;
+});
+
+				 </code></pre>
+                <audio controls>
+                    <source src="Glitch.wav" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </section>
+    </main>
+    <!-- Footer -->
+    <footer class="bg-gray-800 p-4 text-center">
+        <p>© 2025 Project Reflection</p>
+    </footer>
+
+    <!-- Prism.js for Syntax Highlighting -->
+    <script src="https://cdnjs.cloudflare.comajaxlibs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.comajaxlibs/prism/1.24.1/components/prism-supercollider.min.js"></script>
+</body>
+</html>
